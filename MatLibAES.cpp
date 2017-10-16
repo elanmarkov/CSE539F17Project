@@ -35,20 +35,24 @@ Byte Byte::operator+(Byte rhs) {
 }
 Byte Byte::operator*(Byte rhs) {
     uint8_t retVal;
-    uint8_t workingRHS = rhs.byte;
-    uint8_t workingLHS = byte;
+    uint16_t workingRHS = rhs.byte;
+    uint16_t workingLHS = byte;
     uint16_t mod = 0x011b; // the modulus value for polynomial arithmetic in G(256) using AES
     uint16_t temp = 0;
     for(int i = 0; i < 8; i++) {
-        workingRHS >> i;
-        if(workingRHS ^ 0x01 == 1) {
-            workingLHS << i;
+        workingRHS = workingRHS >> i;
+        if(workingRHS & 0x01 == 1) {
+            workingLHS = workingLHS << i;
+            temp ^= workingLHS;
+
         }
         workingLHS = byte; // reset values after bit shift
         workingRHS = rhs.byte;
     }
-    while(temp & 0xff00 != 0) {
-        temp -= mod;
+    for(int j = 0; j <8 ; j++) {
+        if(((temp << j) & 0x8000) == 0x8000) {
+            temp = temp ^ (mod << 7 - j);
+        }
     }
     retVal = temp;
     return Byte(retVal);
