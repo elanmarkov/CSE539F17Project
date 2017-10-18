@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdlib.h>
 #include "MatLibAES.h"
 ByteArray::ByteArray(int row1, int col1) {
 // Constructor for 2D array of Bytes
@@ -74,4 +75,8 @@ Byte Byte::operator*(Byte rhs) {
     // Convert to 8-bit data type and return a Byte-wrapped value of it.
     retVal = temp;
     return Byte(retVal);
+}
+
+int modulo (int a, int b) {
+    return a >= 0 ? a % b : (b - abs(a % b)) % b;
 }

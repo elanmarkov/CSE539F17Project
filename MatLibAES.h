@@ -5,6 +5,7 @@
 // Forward declarations
 struct ByteArray;
 struct Byte;
+int modulo (int a, int b);
 
 struct ByteArray {
 // Structure for creating an array of Byte items
