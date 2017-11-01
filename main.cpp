@@ -1,11 +1,30 @@
 #include <iostream>
 #include <stdio.h>
+#include <unistd.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <math.h>
+#include <string.h>
+#include <fstream>
 #include "MatLibAES.h"
 #define Nb 4 //constant for AES
 
-// May need to add parameter(s) to cipher/invCipher to specify key length
-void Cipher(ByteArray *state, ByteArray word);
-void InvCipher(ByteArray *state, ByteArray word);
+using namespace std;
+
+Byte* GetKeyFromKeyFile(char *keyFilename);
+Byte* GetTextWithPaddingFromTextFile(char *textFilename);
+Byte* GetCipherText(char *cipherTextFilename);
+void CBCEncrypt(Byte *key, Byte *textBlocks, char *filename);
+void CBCDecrypt(Byte *key, Byte *cipherTextBlocks, char *cipherTextFilename);
+
+int GetFileSize(FILE *file);
+void CopyBlock(Byte *dest, int destStartIndex, Byte *src, int srcStartIndex);
+void ValidatePadding(Byte *text, int size);
+void GenerateRandom(Byte *dest, int sizeInBytes);
+
+Byte* Cipher(ByteArray *state, ByteArray word);
+Byte* InvCipher(ByteArray *state, ByteArray word);
 
 // Transformation function declarations
 void SubBytes(ByteArray* state);
@@ -49,15 +68,406 @@ const uint8_t INVSBOX[16][16] =
     {0xa0,0xe0,0x3b,0x4d,0xae,0x2a,0xf5,0xb0,0xc8,0xeb,0xbb,0x3c,0x83,0x53,0x99,0x61},
     {0x17,0x2b,0x04,0x7e,0xba,0x77,0xd6,0x26,0xe1,0x69,0x14,0x63,0x55,0x21,0x0c,0x7d}};
     
-    
+int KeySize = 0;
+int PlainTextWithPaddingSize = 0;
+int CipherTextSize = 0;
 
-int main() {
-    std::cout<< "Simple AES Implementation to be Implemented\n";  
+int main(int argc, char* argv[]) {
+    std::cout<< "Simple AES Implementation to be Implemented\n";
+
+    for (int i = 0; i < argc; i++)
+    {
+        if (argv[i] == "--help")
+        {
+            printf("Usage: SimpleAES [(-d|-e) | -k] [KEYFILE | KEYLENGTH] [TEXTFILE | KEYFILE]\n");
+            return 0;
+        }
+    }
+
+    if (argc != 4)
+    {
+        printf("Usage: SimpleAES [(-d|-e) | -k] [KEYFILE | KEYLENGTH] [TEXTFILE | KEYFILE]\n");
+        return 0;
+    }
+
+    string function = argv[1];
+
+    if (function == "-e")
+    {
+        char *keyFilename = argv[2];
+        char *plaintextFilename = argv[3];
+
+        if (access(keyFilename, F_OK) == 0 &&
+            access(plaintextFilename, F_OK == 0))
+        {
+            if (access(keyFilename, R_OK) == 0 &&
+                access(plaintextFilename, R_OK) == 0)
+            {
+
+                // This function gets the key and sets the global size variable
+                Byte *key = GetKeyFromKeyFile(keyFilename);
+
+                // This function gets the plain text to be encrypted and pads it
+                Byte *textBlocks = GetTextWithPaddingFromTextFile(plaintextFilename);
+
+                CBCEncrypt(key, textBlocks, plaintextFilename);
+
+            }
+            else
+            {
+                printf("ERROR: No permission to read key file and/or text file.\n");
+                return 0;
+            }
+        }
+        else
+        {
+            printf("ERROR: Key file and/or text file do not exist.\n");
+            return 0;
+        }
+    }
+    else if (function == "-d")
+    {
+        char *keyFilename = argv[2];
+        char *cipherTextFilename = argv[3];
+
+        if (access(keyFilename, F_OK) == 0 &&
+            access(cipherTextFilename, F_OK == 0))
+        {
+            if (access(keyFilename, R_OK) == 0 &&
+                access(cipherTextFilename, R_OK) == 0)
+            {
+
+                // This function gets the key and sets the global size variable
+                Byte *key = GetKeyFromKeyFile(keyFilename);
+
+                // This function gets the cipher text to be decrypted
+                Byte *cipherTextBlocks = GetCipherText(cipherTextFilename);
+
+                //validate padding in CBC decrypt
+                CBCDecrypt(key, cipherTextBlocks, cipherTextFilename);
+
+            }
+            else
+            {
+                printf("ERROR: No permission to read key file and/or cipher text file.\n");
+                return 0;
+            }
+        }
+        else
+        {
+            printf("ERROR: Key file and/or cipher text file do not exist.\n");
+            return 0;
+        }
+    }
+    else if (function == "-k")
+    {
+        char *filename = argv[3];
+
+        if (access(filename, F_OK) == 0)
+        {
+            char overwrite;
+            printf("The file you are writing your key to already exists.\n"
+                   "Overwrite existing contents with key? [y|n]\n");
+            scanf("%c", &overwrite);
+
+            if (overwrite == 'y')
+            {
+                if (access(filename, W_OK) != 0)
+                {
+                    printf("You do not have permission to write to the file %s. %s\n", filename,
+                           "Print key to a new file or an existing one with sufficient permissions.\n");
+                    return 0;
+                }
+            } else
+                return 0;
+        }
+
+        string keyLength = argv[2];
+        int keyLengthBytes;
+
+        if (keyLength == "128") {
+            keyLengthBytes = 16;
+        }
+        else if (keyLength == "192") {
+            keyLengthBytes = 24;
+        }
+        else if (keyLength == "256") {
+            keyLengthBytes = 32;
+        }
+        else {
+            printf("Invalid argument for key length. Valid options are 128, 192, or 256\n");
+            return 0;
+        }
+
+        Byte *key;
+        key = (Byte *) malloc (sizeof(Byte) * keyLengthBytes);
+
+        GenerateRandom(key, keyLengthBytes);
+
+        // Write to key file
+        ofstream outfile;
+        outfile.open(filename, std::ofstream::out);
+
+        for (int i = 0; i < keyLengthBytes; i++)
+            outfile << key[i].byte;
+
+        outfile.close();
+    }
+    else
+    {
+        printf("Invalid argument for function/mode. Valid options are -e, -d, or -k\n");
+        return 0;
+    }
+
     return 0;   
 }
 
-void Cipher(ByteArray *state, ByteArray word) {
-    
+Byte* GetKeyFromKeyFile(char *keyFilename)
+{
+    FILE *keyFile;
+    keyFile = fopen(keyFilename, "r");
+
+    KeySize = GetFileSize(keyFile);
+
+    if (!(KeySize == 16 || KeySize == 24 || KeySize == 32))
+    {
+        printf("Error: Key size is not compatible\n");
+        exit(1);
+    }
+
+    fseeko(keyFile, 0, SEEK_SET);
+
+    Byte *key;
+    key = (Byte *) malloc (sizeof(Byte) * KeySize);
+
+    if(fread(key,1,KeySize,keyFile) != KeySize)
+    {
+        printf("Error reading from key file.\n");
+        exit(1);
+    }
+
+    fclose(keyFile);
+
+    return key;
+}
+
+Byte* GetTextWithPaddingFromTextFile(char *textFilename)
+{
+    FILE *textFile;
+    textFile = fopen(textFilename, "r");
+
+    int textFileSize = GetFileSize(textFile);
+
+    if (textFileSize == 0)
+    {
+        printf("Text file is empty. Nothing to encrypt.\n");
+        exit(1);
+    }
+
+    fseeko(textFile, 0, SEEK_SET);
+
+    int remainder = textFileSize % 16;
+    uint8_t padValue = 0x10 - remainder;
+
+    PlainTextWithPaddingSize = textFileSize + (16 - remainder);
+
+    Byte *text;
+    text = (Byte *) malloc (sizeof(Byte) * PlainTextWithPaddingSize);
+
+    if(fread(text,1,textFileSize,textFile) != textFileSize)
+    {
+        printf("Error reading from text file.\n");
+        exit(1);
+    }
+
+    for (int i = 0; i < (16 - remainder); i++)
+    {
+        text[textFileSize + i] = Byte(padValue);
+    }
+
+    fclose(textFile);
+
+    return text;
+}
+
+Byte* GetCipherText(char *cipherTextFilename)
+{
+    FILE *cipherTextFile;
+    cipherTextFile = fopen(cipherTextFilename, "r");
+
+    CipherTextSize = GetFileSize(cipherTextFile);
+
+    if (CipherTextSize == 0)
+    {
+        printf("Cipher text file is empty. Nothing to decrypt.\n");
+        exit(1);
+    }
+    else if (CipherTextSize % 16 != 0)
+    {
+        printf("Cipher text is corrupt (should be an even block length).\n");
+        exit(1);
+    }
+
+    fseeko(cipherTextFile, 0, SEEK_SET);
+
+    Byte *cipherText;
+    cipherText = (Byte *) malloc (sizeof(Byte) * CipherTextSize);
+
+    if(fread(cipherText,1,CipherTextSize,cipherTextFile) != CipherTextSize)
+    {
+        printf("Error reading from cipher text file.\n");
+        exit(1);
+    }
+
+    fclose(cipherTextFile);
+
+    return cipherText;
+}
+
+int GetFileSize(FILE *file)
+{
+    // Using securecoding.cert.org (POSIX ftello())
+    // https://www.securecoding.cert.org/confluence/display/c/FIO19-C.+Do+not+use+fseek%28%29+and+ftell%28%29+to+compute+the+size+of+a+regular+file
+    /////////////////////////////////////////////////////////
+    if (file == NULL)
+    {
+        printf("Error opening cipher text file.\n");
+        exit(1);
+    }
+
+    // POSIX solution - fdopen (?)
+
+    // POSIX solution "ensure file is regular file(?)"
+
+    if (fseeko(file, 0, SEEK_END) != 0)
+    {
+        printf("Error\n");
+        exit(1);
+    }
+
+    off_t fileSize = ftello(file);
+    if (fileSize == -1)
+    {
+        printf("Error\n");
+        exit(1);
+    }
+    return fileSize;
+    /////////////////////////////////////////////////////////
+}
+
+void CBCEncrypt(Byte *key, Byte *textBlocks, char *filename)
+{
+    Byte IV[16];
+    GenerateRandom(IV, 16);
+
+    Byte *cipherBuffer;
+    cipherBuffer = (Byte *) malloc (sizeof(Byte)*(PlainTextWithPaddingSize + 16));
+
+    CopyBlock(cipherBuffer, 0, IV, 0);
+
+    // do key expansion
+
+    for (int i = 0; i < PlainTextWithPaddingSize/16; i++)
+    {
+        Byte tmpCurrentBlock[16];
+        CopyBlock(tmpCurrentBlock, 0, textBlocks, 16*i);
+
+        for (int k = 0; k < 16; k++)
+            tmpCurrentBlock[k] = tmpCurrentBlock[k] + IV[k];
+
+        Byte cipherBlock[16];
+        //cipherBlock = Cipher(tmpCurrentBlock, expandedKey);
+
+        CopyBlock(cipherBuffer, 16*(i+1), cipherBlock, 0);
+
+        CopyBlock(IV, 0, cipherBlock, 0);
+    }
+
+    ofstream ofile;
+    strcat(filename, ".enc");
+    ofile.open(filename, std::ofstream::app);
+
+    for (int i = 0; i < PlainTextWithPaddingSize + 16; i++)
+        ofile << cipherBuffer[i].byte;
+
+    ofile.close();
+    free(cipherBuffer);
+}
+
+void CBCDecrypt(Byte *key, Byte *cipherTextBlocks, char *cipherTextFilename)
+{
+    Byte IV[16];
+    CopyBlock(IV, 0, cipherTextBlocks, 0);
+
+    Byte *textBuffer;
+    textBuffer = (Byte *) malloc (sizeof(Byte)*(CipherTextSize - 16));
+
+    // do key expansion
+
+    for (int i = 1; i < CipherTextSize/16; i++)
+    {
+        Byte tmpCurrentBlock[16];
+        CopyBlock(tmpCurrentBlock, 0, cipherTextBlocks, 16*i);
+
+        Byte textBlock[16];
+        //textBlock = InvCipher(tempCurrentBlock, expandedKey);
+
+        for (int k = 0; k < 16; k++)
+            textBlock[k] = textBlock[k] + IV[k];
+
+        CopyBlock(textBuffer, 16*(i-1), textBlock, 0);
+
+        CopyBlock(IV, 0, tmpCurrentBlock, 0);
+    }
+
+    ValidatePadding(textBuffer, CipherTextSize - 16);
+
+    ofstream ofile;
+    strcat(cipherTextFilename, ".dec");
+    ofile.open(cipherTextFilename, std::ofstream::app);
+
+    for (int i = 0; i < CipherTextSize - 16; i++)
+        ofile << textBuffer[i].byte;
+
+    ofile.close();
+    free(textBuffer);
+}
+
+void CopyBlock(Byte *dest, int destStartIndex, Byte *src, int srcStartIndex)
+{
+    for (int i = 0; i < 16; i++)
+    {
+        dest[destStartIndex + i] = src[srcStartIndex + i];
+    }
+}
+
+void ValidatePadding(Byte *text, int size)
+{
+    Byte lastByteOfText = text[size - 1];
+    for (uint8_t i = lastByteOfText.byte; i > 0; i--)
+    {
+        if (text[(size - 1) - i].byte != lastByteOfText.byte)
+        {
+            printf("cipher text corrupt - padding is invalid.\n");
+            exit(1);
+        }
+
+        text[(size - 1) - i] = Byte(0x00);
+    }
+}
+
+void GenerateRandom(Byte *dest, int sizeInBytes)
+{
+    FILE *file;
+    file = fopen("/dev/urandom", "r");
+    fread(dest, 1, sizeInBytes, file);
+    fclose(file);
+}
+
+
+Byte* Cipher(ByteArray *state, ByteArray word)
+{
+
     /*
     AddRoundKey(state, word[0, Nb-1]);
     
@@ -75,8 +485,9 @@ void Cipher(ByteArray *state, ByteArray word) {
     */
 }
 
-void InvCipher(ByteArray *state, ByteArray word) {
-    
+Byte* InvCipher(ByteArray *state, ByteArray word)
+{
+
     /*
     AddRoundKey(state, word[Nr*Nb, ((Nr+1)*Nb) - 1];
     
