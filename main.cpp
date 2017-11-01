@@ -75,7 +75,37 @@ int PlainTextWithPaddingSize = 0;
 int CipherTextSize = 0;
 
 int main(int argc, char* argv[]) {
+
     std::cout<< "Simple AES Implementation to be Implemented\n";
+/*    
+    ByteArray key = ByteArray(1, 16);
+    key.byteArray[0][0].byte = 0x2b;
+    key.byteArray[0][1].byte = 0x7e;
+    key.byteArray[0][2].byte = 0x15;
+    key.byteArray[0][3].byte = 0x16;
+    key.byteArray[0][4].byte = 0x28;
+    key.byteArray[0][5].byte = 0xae;
+    key.byteArray[0][6].byte = 0xd2;
+    key.byteArray[0][7].byte = 0xa6;
+    key.byteArray[0][8].byte = 0xab;
+    key.byteArray[0][9].byte = 0xf7;
+    key.byteArray[0][10].byte = 0x15;
+    key.byteArray[0][11].byte = 0x88;
+    key.byteArray[0][12].byte = 0x09;
+    key.byteArray[0][13].byte = 0xcf;
+    key.byteArray[0][14].byte = 0x4f;
+    key.byteArray[0][15].byte = 0x3c;
+    std::cout<< "Simple AES Implementation to be Implemented3\n";
+    Word* wordArray;
+    wordArray = new Word[4*(10+1)];
+    std::cout<< "byte:" << std::hex << (int) key.byteArray[0][9].byte << '\n';
+    keyExpansion(key, wordArray, 4, 4*(10+1));
+    std::cout<< "Simple AES Implementation to be Implemented5\n";
+    for(int i = 0; i < 4*(10+1); i++) {
+        std::cout << "word: " << std::hex << (int) wordArray[i].word << '\n';
+    }
+    return 0;
+*/
     for (int i = 0; i < argc; i++)
     {
         if (argv[i] == "--help")
