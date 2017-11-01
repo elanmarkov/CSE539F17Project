@@ -7,4 +7,4 @@ void keyExpansion(ByteArray key, Word* wordArray, int Nk, int words);
 Word subWord(Word input);
 Word rotWord(Word input);
 Word rcon(int val);
-extern const uint8_t SBOX[16][16];
+extern const uint8_t SBOX[16][16]; // Needs the SBOX defined in main to use subWord

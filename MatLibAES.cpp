@@ -98,6 +98,7 @@ Word::Word(uint8_t byte1, uint8_t byte2, uint8_t byte3, uint8_t byte4) {
     word = part1 + part2 + part3 + part4;
 }
 Word Word::operator^(Word rhs) {
+// Simple XOR on the wrapper
     uint32_t retVal = word ^ rhs.word;
     return Word(retVal);
 }
