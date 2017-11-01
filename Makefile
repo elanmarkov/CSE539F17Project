@@ -1,2 +1,2 @@
 all:
-	g++ main.cpp MatLibAES.cpp MatLibAES.h -o SimpleAES 
+	g++ main.cpp MatLibAES.cpp MatLibAES.h KeyExpansion.cpp KeyExpansion.h -o SimpleAES 

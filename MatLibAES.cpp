@@ -80,3 +80,24 @@ Byte Byte::operator*(Byte rhs) {
 int modulo (int a, int b) {
     return a >= 0 ? a % b : (b - abs(a % b)) % b;
 }
+
+Word::Word() {
+// Default constructor
+    word = 0;
+}
+Word::Word(uint32_t word1) {
+// Assign specific word value to Word
+    word = word1;
+}
+Word::Word(uint8_t byte1, uint8_t byte2, uint8_t byte3, uint8_t byte4) {
+// Assign specific 4-byte value to word
+    uint32_t part1 = byte1 << 24;
+    uint32_t part2 = byte2 << 16;
+    uint32_t part3 = byte3 << 8;
+    uint32_t part4 = byte4;
+    word = part1 + part2 + part3 + part4;
+}
+Word Word::operator^(Word rhs) {
+    uint32_t retVal = word ^ rhs.word;
+    return Word(retVal);
+}

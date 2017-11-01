@@ -29,3 +29,11 @@ struct Byte {
         Byte operator+(Byte rhs);
         Byte operator* (Byte rhs);
 };
+
+struct Word {
+        uint32_t word;
+        Word();
+        Word(uint32_t word1);
+        Word(uint8_t byte1, uint8_t byte2, uint8_t byte3, uint8_t byte4);
+        Word operator^(Word rhs);
+};
