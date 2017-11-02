@@ -1,4 +1,4 @@
-#include <iostream>
+#include <fstream>
 #include <stdio.h>
 #include <unistd.h>
 #include <stddef.h>
@@ -6,11 +6,12 @@
 #include <stdint.h>
 #include <math.h>
 #include <string.h>
-#include <fstream>
-#include "KeyExpansion.h"
-#define Nb 4 //constant for AES
+#include "aes_functions.h"
 
 using namespace std;
+
+ByteArray* Cipher(ByteArray *state, ByteArray *keys);
+ByteArray* InvCipher(ByteArray *state, ByteArray *keys);
 
 Byte* GetKeyFromKeyFile(char *keyFilename);
 Byte* GetTextWithPaddingFromTextFile(char *textFilename);
@@ -18,21 +19,10 @@ Byte* GetCipherText(char *cipherTextFilename);
 void CBCEncrypt(Byte *key, Byte *textBlocks, char *filename);
 void CBCDecrypt(Byte *key, Byte *cipherTextBlocks, char *cipherTextFilename);
 
-int GetFileSize(FILE *file);
+int GetFileSize(ifstream *file);
 void CopyBlock(Byte *dest, int destStartIndex, Byte *src, int srcStartIndex);
 void ValidatePadding(Byte *text, int size);
 void GenerateRandom(Byte *dest, int sizeInBytes);
-
-Byte* Cipher(ByteArray *state, ByteArray word);
-Byte* InvCipher(ByteArray *state, ByteArray word);
-
-// Transformation function declarations
-void SubBytes(ByteArray* state);
-void InvSubBytes(ByteArray* state);
-void ShiftRows(ByteArray* state);
-void InvShiftRows(ByteArray* state);
-
-extern void keyExpansion(ByteArray key, Word* wordArray, int Nk, int words);
 
 extern const uint8_t SBOX[16][16] =            
     {{0x63,0x7c,0x77,0x7b,0xf2,0x6b,0x6f,0xc5,0x30,0x01,0x67,0x2b,0xfe,0xd7,0xab,0x76},
@@ -52,7 +42,7 @@ extern const uint8_t SBOX[16][16] =
     {0xe1,0xf8,0x98,0x11,0x69,0xd9,0x8e,0x94,0x9b,0x1e,0x87,0xe9,0xce,0x55,0x28,0xdf},
     {0x8c,0xa1,0x89,0x0d,0xbf,0xe6,0x42,0x68,0x41,0x99,0x2d,0x0f,0xb0,0x54,0xbb,0x16}};
 
-const uint8_t INVSBOX[16][16] = 
+extern const uint8_t INVSBOX[16][16] =
     {{0x52,0x09,0x6a,0xd5,0x30,0x36,0xa5,0x38,0xbf,0x40,0xa3,0x9e,0x81,0xf3,0xd7,0xfb},
     {0x7c,0xe3,0x39,0x82,0x9b,0x2f,0xff,0x87,0x34,0x8e,0x43,0x44,0xc4,0xde,0xe9,0xcb},
     {0x54,0x7b,0x94,0x32,0xa6,0xc2,0x23,0x3d,0xee,0x4c,0x95,0x0b,0x42,0xfa,0xc3,0x4e},
@@ -69,15 +59,16 @@ const uint8_t INVSBOX[16][16] =
     {0x60,0x51,0x7f,0xa9,0x19,0xb5,0x4a,0x0d,0x2d,0xe5,0x7a,0x9f,0x93,0xc9,0x9c,0xef},
     {0xa0,0xe0,0x3b,0x4d,0xae,0x2a,0xf5,0xb0,0xc8,0xeb,0xbb,0x3c,0x83,0x53,0x99,0x61},
     {0x17,0x2b,0x04,0x7e,0xba,0x77,0xd6,0x26,0xe1,0x69,0x14,0x63,0x55,0x21,0x0c,0x7d}};
-    
+
+extern const int Nb = 4;
+
 int KeySize = 0;
 int PlainTextWithPaddingSize = 0;
 int CipherTextSize = 0;
 
 int main(int argc, char* argv[]) {
 
-    std::cout<< "Simple AES Implementation to be Implemented\n";
-/*    
+/*
     ByteArray key = ByteArray(1, 16);
     key.byteArray[0][0].byte = 0x2b;
     key.byteArray[0][1].byte = 0x7e;
@@ -134,6 +125,87 @@ int main(int argc, char* argv[]) {
             if (access(keyFilename, R_OK) == 0 &&
                 access(plaintextFilename, R_OK) == 0)
             {
+/*
+                Byte *key;
+                key = (Byte *) malloc (sizeof(Byte) * 16);
+
+                key[0] = Byte(0x2b);
+                key[1] = Byte(0x7e);
+                key[2] = Byte(0x15);
+                key[3] = Byte(0x16);
+                key[4] = Byte(0x28);
+                key[5] = Byte(0xae);
+                key[6] = Byte(0xd2);
+                key[7] = Byte(0xa6);
+                key[8] = Byte(0xab);
+                key[9] = Byte(0xf7);
+                key[10] = Byte(0x15);
+                key[11] = Byte(0x88);
+                key[12] = Byte(0x09);
+                key[13] = Byte(0xcf);
+                key[14] = Byte(0x4f);
+                key[15] = Byte(0x3c);
+
+                KeySize = 16;
+
+                Byte *textBlocks;
+                textBlocks = (Byte *) malloc (sizeof(Byte) * 16);
+
+                textBlocks[0] = Byte(0x32);
+                textBlocks[1] = Byte(0x43);
+                textBlocks[2] = Byte(0xf6);
+                textBlocks[3] = Byte(0xa8);
+                textBlocks[4] = Byte(0x88);
+                textBlocks[5] = Byte(0x5a);
+                textBlocks[6] = Byte(0x30);
+                textBlocks[7] = Byte(0x8d);
+                textBlocks[8] = Byte(0x31);
+                textBlocks[9] = Byte(0x31);
+                textBlocks[10] = Byte(0x98);
+                textBlocks[11] = Byte(0xa2);
+                textBlocks[12] = Byte(0xe0);
+                textBlocks[13] = Byte(0x37);
+                textBlocks[14] = Byte(0x07);
+                textBlocks[15] = Byte(0x34);
+
+                PlainTextWithPaddingSize = 16;
+
+                ByteArray keyByteArray = ByteArray(1, 16);
+                printf("should print key in order:\n");
+                for (int k = 0; k < 16; k++)
+                {
+                    keyByteArray.byteArray[0][k] = key[k];
+                    printf("%X\n", keyByteArray.byteArray[0][k].byte);
+                }
+
+                int numWords = 4*(16/4 + 7); //Nb(Nr+1); Nr = KeySize/4 + 6
+                ByteArray keyExpanded = ByteArray(4, numWords);
+
+                keyExpansion(keyByteArray, keyExpanded, 16/4, numWords);
+
+                printf("should print input in order:\n");
+                ByteArray stateArray = ByteArray(4, 4);
+                for (int j = 0; j < 4; j++)
+                {
+                    for (int k = 0; k < 4; k++)
+                    {
+                        stateArray.byteArray[k][j] = textBlocks[4*j + k];
+                        printf("%X\n", stateArray.byteArray[k][j].byte);
+                    }
+                }
+
+                ByteArray *cipherBlock;
+                cipherBlock = Cipher(&stateArray, &keyExpanded);
+
+                printf("cipher text: \n");
+
+                for (int j = 0; j < 4; j++)
+                {
+                    for (int k = 0; k < 4; k++)
+                    {
+                        printf("%X\n", cipherBlock->byteArray[k][j].byte);
+                    }
+                }*/
 
                 // This function gets the key and sets the global size variable
                 Byte *key = GetKeyFromKeyFile(keyFilename);
@@ -142,7 +214,6 @@ int main(int argc, char* argv[]) {
                 Byte *textBlocks = GetTextWithPaddingFromTextFile(plaintextFilename);
 
                 CBCEncrypt(key, textBlocks, plaintextFilename);
-
             }
             else
             {
@@ -167,6 +238,103 @@ int main(int argc, char* argv[]) {
             if (access(keyFilename, R_OK) == 0 &&
                 access(cipherTextFilename, R_OK) == 0)
             {
+/*
+                Byte *key;
+                key = (Byte *) malloc (sizeof(Byte) * 16);
+
+                key[0] = Byte(0x2b);
+                key[1] = Byte(0x7e);
+                key[2] = Byte(0x15);
+                key[3] = Byte(0x16);
+                key[4] = Byte(0x28);
+                key[5] = Byte(0xae);
+                key[6] = Byte(0xd2);
+                key[7] = Byte(0xa6);
+                key[8] = Byte(0xab);
+                key[9] = Byte(0xf7);
+                key[10] = Byte(0x15);
+                key[11] = Byte(0x88);
+                key[12] = Byte(0x09);
+                key[13] = Byte(0xcf);
+                key[14] = Byte(0x4f);
+                key[15] = Byte(0x3c);
+
+                KeySize = 16;
+
+                Byte *cipherBlocks;
+                cipherBlocks = (Byte *) malloc (sizeof(Byte) * 32);
+
+                cipherBlocks[0] = Byte(0x33);
+                cipherBlocks[1] = Byte(0x33);
+                cipherBlocks[2] = Byte(0x33);
+                cipherBlocks[3] = Byte(0x33);
+                cipherBlocks[4] = Byte(0x33);
+                cipherBlocks[5] = Byte(0x33);
+                cipherBlocks[6] = Byte(0x33);
+                cipherBlocks[7] = Byte(0x33);
+                cipherBlocks[8] = Byte(0x33);
+                cipherBlocks[9] = Byte(0x33);
+                cipherBlocks[10] = Byte(0x33);
+                cipherBlocks[11] = Byte(0x33);
+                cipherBlocks[12] = Byte(0x33);
+                cipherBlocks[13] = Byte(0x33);
+                cipherBlocks[14] = Byte(0x33);
+                cipherBlocks[15] = Byte(0x33);
+                cipherBlocks[16] = Byte(0x39);
+                cipherBlocks[17] = Byte(0x25);
+                cipherBlocks[18] = Byte(0x84);
+                cipherBlocks[19] = Byte(0x1d);
+                cipherBlocks[20] = Byte(0x02);
+                cipherBlocks[21] = Byte(0xdc);
+                cipherBlocks[22] = Byte(0x09);
+                cipherBlocks[23] = Byte(0xfb);
+                cipherBlocks[24] = Byte(0xdc);
+                cipherBlocks[25] = Byte(0x11);
+                cipherBlocks[26] = Byte(0x85);
+                cipherBlocks[27] = Byte(0x97);
+                cipherBlocks[28] = Byte(0x19);
+                cipherBlocks[29] = Byte(0x6a);
+                cipherBlocks[30] = Byte(0x0b);
+                cipherBlocks[31] = Byte(0x32);
+
+                CipherTextSize = 32;
+
+                ByteArray keyByteArray = ByteArray(1, 16);
+                printf("should print key in order:\n");
+                for (int k = 0; k < 16; k++)
+                {
+                    keyByteArray.byteArray[0][k] = key[k];
+                    printf("%X\n", keyByteArray.byteArray[0][k].byte);
+                }
+
+                int numWords = 4*(16/4 + 7); //Nb(Nr+1); Nr = KeySize/4 + 6
+                ByteArray keyExpanded = ByteArray(4, numWords);
+
+                keyExpansion(keyByteArray, keyExpanded, 16/4, numWords);
+
+                printf("should print cipher text in order:\n");
+                ByteArray stateArray = ByteArray(4, 4);
+                for (int j = 0; j < 4; j++)
+                {
+                    for (int k = 0; k < 4; k++)
+                    {
+                        stateArray.byteArray[k][j] = cipherBlocks[4*j + k];
+                        printf("%X\n", stateArray.byteArray[k][j].byte);
+                    }
+                }
+
+                ByteArray *textBlock;
+                textBlock = InvCipher(&stateArray, &keyExpanded);
+
+                printf("plain text: \n");
+
+                for (int j = 0; j < 4; j++)
+                {
+                    for (int k = 0; k < 4; k++)
+                    {
+                        printf("%X\n", textBlock->byteArray[k][j].byte);
+                    }
+                }*/
 
                 // This function gets the key and sets the global size variable
                 Byte *key = GetKeyFromKeyFile(keyFilename);
@@ -176,6 +344,7 @@ int main(int argc, char* argv[]) {
 
                 //validate padding in CBC decrypt
                 CBCDecrypt(key, cipherTextBlocks, cipherTextFilename);
+                //CBCDecrypt(key, cipherBlocks, cipherTextFilename);
 
             }
             else
@@ -236,8 +405,7 @@ int main(int argc, char* argv[]) {
         GenerateRandom(key, keyLengthBytes);
 
         // Write to key file
-        ofstream outfile;
-        outfile.open(filename, std::ofstream::out);
+        ofstream outfile(filename, ofstream::out | ofstream::binary);
 
         for (int i = 0; i < keyLengthBytes; i++)
             outfile << key[i].byte;
@@ -255,10 +423,9 @@ int main(int argc, char* argv[]) {
 
 Byte* GetKeyFromKeyFile(char *keyFilename)
 {
-    FILE *keyFile;
-    keyFile = fopen(keyFilename, "r");
+    ifstream keyFile(keyFilename, ifstream::in | ifstream::binary);
 
-    KeySize = GetFileSize(keyFile);
+    KeySize = GetFileSize(&keyFile);
 
     if (!(KeySize == 16 || KeySize == 24 || KeySize == 32))
     {
@@ -266,36 +433,30 @@ Byte* GetKeyFromKeyFile(char *keyFilename)
         exit(1);
     }
 
-    fseeko(keyFile, 0, SEEK_SET);
-
     Byte *key;
     key = (Byte *) malloc (sizeof(Byte) * KeySize);
 
-    if(fread(key,1,KeySize,keyFile) != KeySize)
+    char *tmpBuf;
+    tmpBuf = (char *) malloc (sizeof(char) * KeySize);
+
+    keyFile.read(tmpBuf, KeySize);
+
+    for (int i = 0; i < KeySize; i++)
     {
-        printf("Error reading from key file.\n");
-        exit(1);
+        key[i] = Byte((uint8_t) tmpBuf[i]);
     }
 
-    fclose(keyFile);
+    free(tmpBuf);
+    keyFile.close();
 
     return key;
 }
 
 Byte* GetTextWithPaddingFromTextFile(char *textFilename)
 {
-    FILE *textFile;
-    textFile = fopen(textFilename, "r");
+    ifstream textFile(textFilename, ifstream::in | ifstream::binary);
 
-    int textFileSize = GetFileSize(textFile);
-
-    if (textFileSize == 0)
-    {
-        printf("Text file is empty. Nothing to encrypt.\n");
-        exit(1);
-    }
-
-    fseeko(textFile, 0, SEEK_SET);
+    int textFileSize = GetFileSize(&textFile);
 
     int remainder = textFileSize % 16;
     uint8_t padValue = 0x10 - remainder;
@@ -305,10 +466,14 @@ Byte* GetTextWithPaddingFromTextFile(char *textFilename)
     Byte *text;
     text = (Byte *) malloc (sizeof(Byte) * PlainTextWithPaddingSize);
 
-    if(fread(text,1,textFileSize,textFile) != textFileSize)
+    char *tmpBuf;
+    tmpBuf = (char *) malloc (sizeof(char) * textFileSize);
+
+    textFile.read(tmpBuf, textFileSize);
+
+    for (int i = 0; i < textFileSize; i++)
     {
-        printf("Error reading from text file.\n");
-        exit(1);
+        text[i] = Byte((uint8_t) tmpBuf[i]);
     }
 
     for (int i = 0; i < (16 - remainder); i++)
@@ -316,87 +481,81 @@ Byte* GetTextWithPaddingFromTextFile(char *textFilename)
         text[textFileSize + i] = Byte(padValue);
     }
 
-    fclose(textFile);
+    free(tmpBuf);
+    textFile.close();
 
     return text;
 }
 
 Byte* GetCipherText(char *cipherTextFilename)
 {
-    FILE *cipherTextFile;
-    cipherTextFile = fopen(cipherTextFilename, "r");
+    ifstream cipherTextFile(cipherTextFilename, ifstream::in | ifstream::binary);
 
-    CipherTextSize = GetFileSize(cipherTextFile);
+    CipherTextSize = GetFileSize(&cipherTextFile);
 
-    if (CipherTextSize == 0)
+    if (CipherTextSize % 16 != 0)
     {
-        printf("Cipher text file is empty. Nothing to decrypt.\n");
+        printf("Cipher text is corrupt (should be an even block length).\n"
+               "Cipher text size = %i\n", CipherTextSize);
         exit(1);
     }
-    else if (CipherTextSize % 16 != 0)
-    {
-        printf("Cipher text is corrupt (should be an even block length).\n");
-        exit(1);
-    }
-
-    fseeko(cipherTextFile, 0, SEEK_SET);
 
     Byte *cipherText;
     cipherText = (Byte *) malloc (sizeof(Byte) * CipherTextSize);
 
-    if(fread(cipherText,1,CipherTextSize,cipherTextFile) != CipherTextSize)
+    char *tmpBuf;
+    tmpBuf = (char *) malloc (sizeof(char) * CipherTextSize);
+
+    cipherTextFile.read(tmpBuf, CipherTextSize);
+
+    for (int i = 0; i < CipherTextSize; i++)
     {
-        printf("Error reading from cipher text file.\n");
-        exit(1);
+        cipherText[i] = Byte((uint8_t) tmpBuf[i]);
     }
 
-    fclose(cipherTextFile);
+    free(tmpBuf);
+    cipherTextFile.close();
 
     return cipherText;
 }
 
-int GetFileSize(FILE *file)
+int GetFileSize(ifstream *file)
 {
-    // Using securecoding.cert.org (POSIX ftello())
-    // https://www.securecoding.cert.org/confluence/display/c/FIO19-C.+Do+not+use+fseek%28%29+and+ftell%28%29+to+compute+the+size+of+a+regular+file
-    /////////////////////////////////////////////////////////
-    if (file == NULL)
+    int fileSize;
+
+    file->seekg(0, file->end);
+    fileSize = file->tellg();
+    file->seekg(file->beg);
+
+    if (fileSize <= 0)
     {
-        printf("Error opening cipher text file.\n");
+        "Error determining file size, or file is empty.\n";
         exit(1);
     }
 
-    // POSIX solution - fdopen (?)
-
-    // POSIX solution "ensure file is regular file(?)"
-
-    if (fseeko(file, 0, SEEK_END) != 0)
-    {
-        printf("Error\n");
-        exit(1);
-    }
-
-    off_t fileSize = ftello(file);
-    if (fileSize == -1)
-    {
-        printf("Error\n");
-        exit(1);
-    }
     return fileSize;
-    /////////////////////////////////////////////////////////
 }
 
-void CBCEncrypt(Byte *key, Byte *textBlocks, char *filename)
-{
+void CBCEncrypt(Byte *key, Byte *textBlocks, char *filename) {
     Byte IV[16];
     GenerateRandom(IV, 16);
 
     Byte *cipherBuffer;
-    cipherBuffer = (Byte *) malloc (sizeof(Byte)*(PlainTextWithPaddingSize + 16));
+    cipherBuffer = (Byte *) malloc (sizeof(Byte) * (PlainTextWithPaddingSize + 16));
 
     CopyBlock(cipherBuffer, 0, IV, 0);
 
-    // do key expansion
+    //Nk = KeySize/4
+    ByteArray keyByteArray = ByteArray(1, KeySize);
+    for (int k = 0; k < KeySize; k++)
+    {
+        keyByteArray.byteArray[0][k] = key[k];
+    }
+
+    int numWords = 4*(KeySize/4 + 7); //Nb(Nr+1); Nr = KeySize/4 + 6
+    ByteArray keyExpanded = ByteArray(4, numWords);
+
+    keyExpansion(keyByteArray, keyExpanded, KeySize/4, numWords);
 
     for (int i = 0; i < PlainTextWithPaddingSize/16; i++)
     {
@@ -406,20 +565,39 @@ void CBCEncrypt(Byte *key, Byte *textBlocks, char *filename)
         for (int k = 0; k < 16; k++)
             tmpCurrentBlock[k] = tmpCurrentBlock[k] + IV[k];
 
-        Byte cipherBlock[16];
-        //cipherBlock = Cipher(tmpCurrentBlock, expandedKey);
+        ByteArray stateArray = ByteArray(4, 4);
+        for (int j = 0; j < 4; j++)
+        {
+            for (int k = 0; k < 4; k++)
+            {
+                stateArray.byteArray[k][j] = tmpCurrentBlock[4*j + k];
+            }
+        }
 
-        CopyBlock(cipherBuffer, 16*(i+1), cipherBlock, 0);
+        ByteArray *cipherBlock;
+        cipherBlock = Cipher(&stateArray, &keyExpanded);
 
-        CopyBlock(IV, 0, cipherBlock, 0);
+        Byte linearCipherBlock[16];
+        for (int j = 0; j < 4; j++)
+        {
+            for (int k = 0; k < 4; k++)
+            {
+                linearCipherBlock[4*j + k] = cipherBlock->byteArray[k][j];
+            }
+        }
+
+        CopyBlock(cipherBuffer, 16*(i+1), linearCipherBlock, 0);
+
+        CopyBlock(IV, 0, linearCipherBlock, 0);
     }
 
-    ofstream ofile;
     strcat(filename, ".enc");
-    ofile.open(filename, std::ofstream::app);
+    ofstream ofile(filename, ofstream::out | ofstream::binary);
 
     for (int i = 0; i < PlainTextWithPaddingSize + 16; i++)
+    {
         ofile << cipherBuffer[i].byte;
+    }
 
     ofile.close();
     free(cipherBuffer);
@@ -433,32 +611,61 @@ void CBCDecrypt(Byte *key, Byte *cipherTextBlocks, char *cipherTextFilename)
     Byte *textBuffer;
     textBuffer = (Byte *) malloc (sizeof(Byte)*(CipherTextSize - 16));
 
-    // do key expansion
+    //Nk = KeySize/4
+    ByteArray keyByteArray = ByteArray(1, KeySize);
+    for (int k = 0; k < KeySize; k++)
+    {
+        keyByteArray.byteArray[0][k] = key[k];
+    }
+
+    int numWords = 4*(KeySize/4 + 7); //Nb(Nr+1); Nr = KeySize/4 + 6
+    ByteArray keyExpanded = ByteArray(4, numWords);
+
+    keyExpansion(keyByteArray, keyExpanded, KeySize/4, numWords);
 
     for (int i = 1; i < CipherTextSize/16; i++)
     {
         Byte tmpCurrentBlock[16];
         CopyBlock(tmpCurrentBlock, 0, cipherTextBlocks, 16*i);
 
-        Byte textBlock[16];
-        //textBlock = InvCipher(tempCurrentBlock, expandedKey);
+        ByteArray stateArray = ByteArray(4, 4);
+        for (int j = 0; j < 4; j++)
+        {
+            for (int k = 0; k < 4; k++)
+            {
+                stateArray.byteArray[k][j] = tmpCurrentBlock[4*j + k];
+            }
+        }
+
+        ByteArray *textBlock;
+        textBlock = InvCipher(&stateArray, &keyExpanded);
+
+        Byte linearTextBlock[16];
+        for (int j = 0; j < 4; j++)
+        {
+            for (int k = 0; k < 4; k++)
+            {
+                linearTextBlock[4*j + k] = textBlock->byteArray[k][j];
+            }
+        }
 
         for (int k = 0; k < 16; k++)
-            textBlock[k] = textBlock[k] + IV[k];
+            linearTextBlock[k] = linearTextBlock[k] + IV[k];
 
-        CopyBlock(textBuffer, 16*(i-1), textBlock, 0);
+        CopyBlock(textBuffer, 16*(i-1), linearTextBlock, 0);
 
         CopyBlock(IV, 0, tmpCurrentBlock, 0);
     }
 
     ValidatePadding(textBuffer, CipherTextSize - 16);
 
-    ofstream ofile;
     strcat(cipherTextFilename, ".dec");
-    ofile.open(cipherTextFilename, std::ofstream::app);
 
+    ofstream ofile(cipherTextFilename, ofstream::out | ofstream::binary);
     for (int i = 0; i < CipherTextSize - 16; i++)
+    {
         ofile << textBuffer[i].byte;
+    }
 
     ofile.close();
     free(textBuffer);
@@ -475,7 +682,7 @@ void CopyBlock(Byte *dest, int destStartIndex, Byte *src, int srcStartIndex)
 void ValidatePadding(Byte *text, int size)
 {
     Byte lastByteOfText = text[size - 1];
-    for (uint8_t i = lastByteOfText.byte; i > 0; i--)
+    for (uint8_t i = 0; i < lastByteOfText.byte; i++)
     {
         if (text[(size - 1) - i].byte != lastByteOfText.byte)
         {
@@ -489,113 +696,64 @@ void ValidatePadding(Byte *text, int size)
 
 void GenerateRandom(Byte *dest, int sizeInBytes)
 {
-    FILE *file;
-    file = fopen("/dev/urandom", "r");
-    fread(dest, 1, sizeInBytes, file);
-    fclose(file);
+    ifstream ifs ("/dev/urandom", ifstream::binary);
+    if (ifs)
+    {
+        char *tmpBuf;
+        tmpBuf = (char *) malloc (sizeof(char) * sizeInBytes);
+
+        ifs.read(tmpBuf, sizeInBytes);
+
+        for (int i = 0; i < sizeInBytes; i++)
+        {
+            dest[i] = ((uint8_t) tmpBuf[i]);
+        }
+
+        free(tmpBuf);
+        ifs.close();
+    }
 }
 
 
-Byte* Cipher(ByteArray *state, ByteArray word)
+ByteArray* Cipher(ByteArray *state, ByteArray *keys)
 {
+    int Nr = KeySize/4 + 6;
 
-    /*
-    AddRoundKey(state, word[0, Nb-1]);
-    
-    for (i = 1; i < Nr; i++)
+    AddRoundKey(state, keys, 0);
+
+    for (int i = 1; i < Nr; i++)
     {
         SubBytes(state);
         ShiftRows(state);
         MixColumns(state);
-        AddRoundKey(state, word[i*Nb, ((i+1)*Nb) - 1];
+        AddRoundKey(state, keys, i);
     }
-    
+
     SubBytes(state);
     ShiftRows(state);
-    AddRoundKey(state, word[Nr*Nb, ((Nr+1)*Nb) - 1];
-    */
+    AddRoundKey(state, keys, Nr);
+
+    return state;
 }
 
-Byte* InvCipher(ByteArray *state, ByteArray word)
+ByteArray* InvCipher(ByteArray *state, ByteArray *keys)
 {
+    int Nr = KeySize/4 + 6;
 
-    /*
-    AddRoundKey(state, word[Nr*Nb, ((Nr+1)*Nb) - 1];
-    
-    for (i = (Nr - 1); i > 0; i--)
+    InvAddRoundKey(state, keys, Nr);
+
+    for (int i = (Nr - 1); i > 0; i--)
     {
         InvShiftRows(state);
         InvSubBytes(state);
-        AddRoundKey(state, word[i*Nb, ((i+1)*Nb) - 1]);
+        InvAddRoundKey(state, keys, i);
         InvMixColumns(state);
     }
-    
+
     InvShiftRows(state);
     InvSubBytes(state);
-    AddRoundKey(state, word[0, Nb-1]);
-    */
+    InvAddRoundKey(state, keys, 0);
+
+    return state;
 }
 
-void SubBytes(ByteArray* state)
-{
-
-    uint8_t low;
-    uint8_t hi;
-    
-    for (int i = 0; i < 4; i++)
-    {
-        for (int j = 0; j < 4; j++)
-        {
-            low = state->byteArray[i][j].byte & 0x0f;
-            hi = (state->byteArray[i][j].byte & 0xf0) >> 4;
-        
-            state->byteArray[i][j] = Byte(SBOX[hi][low]);
-        }
-    }
-}
-
-void InvSubBytes(ByteArray* state)
-{
-
-    uint8_t low;
-    uint8_t hi;
-    
-    for (int i = 0; i < 4; i++)
-    {
-        for (int j = 0; j < 4; j++)
-        {
-            low = state->byteArray[i][j].byte & 0x0f;
-            hi = (state->byteArray[i][j].byte & 0xf0) >> 4;
-        
-            state->byteArray[i][j] = Byte(INVSBOX[hi][low]);
-        }
-    }
-}
-
-void ShiftRows(ByteArray* state)
-{
-    for (int i = 1; i < 4; i++)
-    {
-    
-        Byte iRow[] = {state->byteArray[0][i], state->byteArray[1][i], state->byteArray[2][i], state->byteArray[3][i]};
-        
-        for (int j = 0; j < 4; j++)
-        {
-            state->byteArray[j][i] = iRow[modulo(j+i, 4)];
-        }
-    }
-}
-
-void InvShiftRows(ByteArray* state)
-{
-    for (int i = 1; i < 4; i++)
-    {
-    
-        Byte iRow[] = {state->byteArray[0][i], state->byteArray[1][i], state->byteArray[2][i], state->byteArray[3][i]};
-                
-        for (int j = 0; j < 4; j++)
-        {
-            state->byteArray[j][i] = iRow[modulo(j-i, 4)];
-        }
-    }
-}

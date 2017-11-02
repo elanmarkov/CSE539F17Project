@@ -19,10 +19,10 @@ ByteArray::ByteArray() {
 }
 ByteArray::~ByteArray() {
 // Destructor, 2D array cleanup
-    for(int i = 0; i < row; ++i) {
-        delete [] byteArray[i];
-    }
-    delete [] byteArray;
+//    for(int i = 0; i < row; ++i) {
+//        delete [] byteArray[i];
+//    }
+//    delete [] byteArray;
 }
 Byte::Byte() {
 // Default constructor

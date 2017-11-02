@@ -1,10 +1,11 @@
 #include "KeyExpansion.h"
 
-void keyExpansion(ByteArray key, Word* wordArray, int Nk, int words) {
+void keyExpansion(ByteArray key, ByteArray* expandedKey, int Nk, int words) {
 // Implementation of AES NIST standard document key expansion
 // words is the value Nb*(Nr+1) that gives the size of wordArray
     Word temp = Word();
 // Load the key into the first Nk words of the wordArray
+
     for(int i = 0; i < Nk; i++) {
         wordArray[i] = Word(key.byteArray[0][4*i].byte, key.byteArray[0][4*i+1].byte, key.byteArray[0][4*i+2].byte, key.byteArray[0][4*i+3].byte);
     }
