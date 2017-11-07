@@ -7,22 +7,15 @@
 #include <math.h>
 #include <string.h>
 #include "aes_functions.h"
+#include "HelperFunctions.h"
 
 using namespace std;
 
 ByteArray* Cipher(ByteArray *state, ByteArray *keys);
 ByteArray* InvCipher(ByteArray *state, ByteArray *keys);
 
-Byte* GetKeyFromKeyFile(char *keyFilename);
-Byte* GetTextWithPaddingFromTextFile(char *textFilename);
-Byte* GetCipherText(char *cipherTextFilename);
 void CBCEncrypt(Byte *key, Byte *textBlocks, char *filename);
 void CBCDecrypt(Byte *key, Byte *cipherTextBlocks, char *cipherTextFilename);
-
-int GetFileSize(ifstream *file);
-void CopyBlock(Byte *dest, int destStartIndex, Byte *src, int srcStartIndex);
-void ValidatePadding(Byte *text, int size);
-void GenerateRandom(Byte *dest, int sizeInBytes);
 
 extern const uint8_t SBOX[16][16] =            
     {{0x63,0x7c,0x77,0x7b,0xf2,0x6b,0x6f,0xc5,0x30,0x01,0x67,0x2b,0xfe,0xd7,0xab,0x76},
@@ -68,35 +61,6 @@ int CipherTextSize = 0;
 
 int main(int argc, char* argv[]) {
 
-/*
-    ByteArray key = ByteArray(1, 16);
-    key.byteArray[0][0].byte = 0x2b;
-    key.byteArray[0][1].byte = 0x7e;
-    key.byteArray[0][2].byte = 0x15;
-    key.byteArray[0][3].byte = 0x16;
-    key.byteArray[0][4].byte = 0x28;
-    key.byteArray[0][5].byte = 0xae;
-    key.byteArray[0][6].byte = 0xd2;
-    key.byteArray[0][7].byte = 0xa6;
-    key.byteArray[0][8].byte = 0xab;
-    key.byteArray[0][9].byte = 0xf7;
-    key.byteArray[0][10].byte = 0x15;
-    key.byteArray[0][11].byte = 0x88;
-    key.byteArray[0][12].byte = 0x09;
-    key.byteArray[0][13].byte = 0xcf;
-    key.byteArray[0][14].byte = 0x4f;
-    key.byteArray[0][15].byte = 0x3c;
-    std::cout<< "Simple AES Implementation to be Implemented3\n";
-    Word* wordArray;
-    wordArray = new Word[4*(10+1)];
-    std::cout<< "byte:" << std::hex << (int) key.byteArray[0][9].byte << '\n';
-    keyExpansion(key, wordArray, 4, 4*(10+1));
-    std::cout<< "Simple AES Implementation to be Implemented5\n";
-    for(int i = 0; i < 4*(10+1); i++) {
-        std::cout << "word: " << std::hex << (int) wordArray[i].word << '\n';
-    }
-    return 0;
-*/
     for (int i = 0; i < argc; i++)
     {
         if (argv[i] == "--help")
@@ -125,93 +89,30 @@ int main(int argc, char* argv[]) {
             if (access(keyFilename, R_OK) == 0 &&
                 access(plaintextFilename, R_OK) == 0)
             {
-/*
-                Byte *key;
-                key = (Byte *) malloc (sizeof(Byte) * 16);
-
-                key[0] = Byte(0x2b);
-                key[1] = Byte(0x7e);
-                key[2] = Byte(0x15);
-                key[3] = Byte(0x16);
-                key[4] = Byte(0x28);
-                key[5] = Byte(0xae);
-                key[6] = Byte(0xd2);
-                key[7] = Byte(0xa6);
-                key[8] = Byte(0xab);
-                key[9] = Byte(0xf7);
-                key[10] = Byte(0x15);
-                key[11] = Byte(0x88);
-                key[12] = Byte(0x09);
-                key[13] = Byte(0xcf);
-                key[14] = Byte(0x4f);
-                key[15] = Byte(0x3c);
-
-                KeySize = 16;
-
-                Byte *textBlocks;
-                textBlocks = (Byte *) malloc (sizeof(Byte) * 16);
-
-                textBlocks[0] = Byte(0x32);
-                textBlocks[1] = Byte(0x43);
-                textBlocks[2] = Byte(0xf6);
-                textBlocks[3] = Byte(0xa8);
-                textBlocks[4] = Byte(0x88);
-                textBlocks[5] = Byte(0x5a);
-                textBlocks[6] = Byte(0x30);
-                textBlocks[7] = Byte(0x8d);
-                textBlocks[8] = Byte(0x31);
-                textBlocks[9] = Byte(0x31);
-                textBlocks[10] = Byte(0x98);
-                textBlocks[11] = Byte(0xa2);
-                textBlocks[12] = Byte(0xe0);
-                textBlocks[13] = Byte(0x37);
-                textBlocks[14] = Byte(0x07);
-                textBlocks[15] = Byte(0x34);
-
-                PlainTextWithPaddingSize = 16;
-
-                ByteArray keyByteArray = ByteArray(1, 16);
-                printf("should print key in order:\n");
-                for (int k = 0; k < 16; k++)
-                {
-                    keyByteArray.byteArray[0][k] = key[k];
-                    printf("%X\n", keyByteArray.byteArray[0][k].byte);
-                }
-
-                int numWords = 4*(16/4 + 7); //Nb(Nr+1); Nr = KeySize/4 + 6
-                ByteArray keyExpanded = ByteArray(4, numWords);
-
-                keyExpansion(keyByteArray, keyExpanded, 16/4, numWords);
-
-                printf("should print input in order:\n");
-                ByteArray stateArray = ByteArray(4, 4);
-                for (int j = 0; j < 4; j++)
-                {
-                    for (int k = 0; k < 4; k++)
-                    {
-                        stateArray.byteArray[k][j] = textBlocks[4*j + k];
-                        printf("%X\n", stateArray.byteArray[k][j].byte);
-                    }
-                }
-
-                ByteArray *cipherBlock;
-                cipherBlock = Cipher(&stateArray, &keyExpanded);
-
-                printf("cipher text: \n");
-
-                for (int j = 0; j < 4; j++)
-                {
-                    for (int k = 0; k < 4; k++)
-                    {
-                        printf("%X\n", cipherBlock->byteArray[k][j].byte);
-                    }
-                }*/
 
                 // This function gets the key and sets the global size variable
-                Byte *key = GetKeyFromKeyFile(keyFilename);
+                KeySize = GetFileSize(keyFilename);
+
+                if (!(KeySize == 16 || KeySize == 24 || KeySize == 32))
+                {
+                    printf("Error: Key size is not compatible\n");
+                    exit(1);
+                }
+
+                Byte *key = GetTextFromFile(keyFilename, KeySize);
 
                 // This function gets the plain text to be encrypted and pads it
-                Byte *textBlocks = GetTextWithPaddingFromTextFile(plaintextFilename);
+                int plainTextSize = GetFileSize(plaintextFilename);
+
+                if (plainTextSize == 0)
+                {
+                    printf("Text file is empty - nothing to encrypt.\n");
+                }
+
+                int padSize = 16 - (plainTextSize % 16);
+                PlainTextWithPaddingSize = plainTextSize + padSize;
+
+                Byte *textBlocks = GetPlainTextWithPadding(plaintextFilename, plainTextSize, padSize);
 
                 CBCEncrypt(key, textBlocks, plaintextFilename);
             }
@@ -238,114 +139,34 @@ int main(int argc, char* argv[]) {
             if (access(keyFilename, R_OK) == 0 &&
                 access(cipherTextFilename, R_OK) == 0)
             {
-/*
-                Byte *key;
-                key = (Byte *) malloc (sizeof(Byte) * 16);
 
-                key[0] = Byte(0x2b);
-                key[1] = Byte(0x7e);
-                key[2] = Byte(0x15);
-                key[3] = Byte(0x16);
-                key[4] = Byte(0x28);
-                key[5] = Byte(0xae);
-                key[6] = Byte(0xd2);
-                key[7] = Byte(0xa6);
-                key[8] = Byte(0xab);
-                key[9] = Byte(0xf7);
-                key[10] = Byte(0x15);
-                key[11] = Byte(0x88);
-                key[12] = Byte(0x09);
-                key[13] = Byte(0xcf);
-                key[14] = Byte(0x4f);
-                key[15] = Byte(0x3c);
+                KeySize = GetFileSize(keyFilename);
 
-                KeySize = 16;
-
-                Byte *cipherBlocks;
-                cipherBlocks = (Byte *) malloc (sizeof(Byte) * 32);
-
-                cipherBlocks[0] = Byte(0x33);
-                cipherBlocks[1] = Byte(0x33);
-                cipherBlocks[2] = Byte(0x33);
-                cipherBlocks[3] = Byte(0x33);
-                cipherBlocks[4] = Byte(0x33);
-                cipherBlocks[5] = Byte(0x33);
-                cipherBlocks[6] = Byte(0x33);
-                cipherBlocks[7] = Byte(0x33);
-                cipherBlocks[8] = Byte(0x33);
-                cipherBlocks[9] = Byte(0x33);
-                cipherBlocks[10] = Byte(0x33);
-                cipherBlocks[11] = Byte(0x33);
-                cipherBlocks[12] = Byte(0x33);
-                cipherBlocks[13] = Byte(0x33);
-                cipherBlocks[14] = Byte(0x33);
-                cipherBlocks[15] = Byte(0x33);
-                cipherBlocks[16] = Byte(0x39);
-                cipherBlocks[17] = Byte(0x25);
-                cipherBlocks[18] = Byte(0x84);
-                cipherBlocks[19] = Byte(0x1d);
-                cipherBlocks[20] = Byte(0x02);
-                cipherBlocks[21] = Byte(0xdc);
-                cipherBlocks[22] = Byte(0x09);
-                cipherBlocks[23] = Byte(0xfb);
-                cipherBlocks[24] = Byte(0xdc);
-                cipherBlocks[25] = Byte(0x11);
-                cipherBlocks[26] = Byte(0x85);
-                cipherBlocks[27] = Byte(0x97);
-                cipherBlocks[28] = Byte(0x19);
-                cipherBlocks[29] = Byte(0x6a);
-                cipherBlocks[30] = Byte(0x0b);
-                cipherBlocks[31] = Byte(0x32);
-
-                CipherTextSize = 32;
-
-                ByteArray keyByteArray = ByteArray(1, 16);
-                printf("should print key in order:\n");
-                for (int k = 0; k < 16; k++)
+                //Key must be in the expected 128, 192, or 256 bit form
+                if (!(KeySize == 16 || KeySize == 24 || KeySize == 32))
                 {
-                    keyByteArray.byteArray[0][k] = key[k];
-                    printf("%X\n", keyByteArray.byteArray[0][k].byte);
+                    printf("Error: Key size is not compatible\n");
+                    exit(1);
                 }
 
-                int numWords = 4*(16/4 + 7); //Nb(Nr+1); Nr = KeySize/4 + 6
-                ByteArray keyExpanded = ByteArray(4, numWords);
+                Byte *key = GetTextFromFile(keyFilename, KeySize);
 
-                keyExpansion(keyByteArray, keyExpanded, 16/4, numWords);
+                CipherTextSize = GetFileSize(cipherTextFilename);
 
-                printf("should print cipher text in order:\n");
-                ByteArray stateArray = ByteArray(4, 4);
-                for (int j = 0; j < 4; j++)
+                if (CipherTextSize == 0)
                 {
-                    for (int k = 0; k < 4; k++)
-                    {
-                        stateArray.byteArray[k][j] = cipherBlocks[4*j + k];
-                        printf("%X\n", stateArray.byteArray[k][j].byte);
-                    }
+                    printf("Cipher text file is empty - nothing to decrypt.\n");
+                }
+                else if (CipherTextSize % 16 != 0)
+                {
+                    printf("Cipher text is corrupt (should be an even block length).\n"
+                                   "Cipher text size = %i\n", CipherTextSize);
+                    exit(1);
                 }
 
-                ByteArray *textBlock;
-                textBlock = InvCipher(&stateArray, &keyExpanded);
+                Byte *cipherTextBlocks = GetTextFromFile(cipherTextFilename, CipherTextSize);
 
-                printf("plain text: \n");
-
-                for (int j = 0; j < 4; j++)
-                {
-                    for (int k = 0; k < 4; k++)
-                    {
-                        printf("%X\n", textBlock->byteArray[k][j].byte);
-                    }
-                }*/
-
-                // This function gets the key and sets the global size variable
-                Byte *key = GetKeyFromKeyFile(keyFilename);
-
-                // This function gets the cipher text to be decrypted
-                Byte *cipherTextBlocks = GetCipherText(cipherTextFilename);
-
-                //validate padding in CBC decrypt
                 CBCDecrypt(key, cipherTextBlocks, cipherTextFilename);
-                //CBCDecrypt(key, cipherBlocks, cipherTextFilename);
-
             }
             else
             {
@@ -421,150 +242,42 @@ int main(int argc, char* argv[]) {
     return 0;  
 }
 
-Byte* GetKeyFromKeyFile(char *keyFilename)
-{
-    ifstream keyFile(keyFilename, ifstream::in | ifstream::binary);
-
-    KeySize = GetFileSize(&keyFile);
-
-    if (!(KeySize == 16 || KeySize == 24 || KeySize == 32))
-    {
-        printf("Error: Key size is not compatible\n");
-        exit(1);
-    }
-
-    Byte *key;
-    key = (Byte *) malloc (sizeof(Byte) * KeySize);
-
-    char *tmpBuf;
-    tmpBuf = (char *) malloc (sizeof(char) * KeySize);
-
-    keyFile.read(tmpBuf, KeySize);
-
-    for (int i = 0; i < KeySize; i++)
-    {
-        key[i] = Byte((uint8_t) tmpBuf[i]);
-    }
-
-    free(tmpBuf);
-    keyFile.close();
-
-    return key;
-}
-
-Byte* GetTextWithPaddingFromTextFile(char *textFilename)
-{
-    ifstream textFile(textFilename, ifstream::in | ifstream::binary);
-
-    int textFileSize = GetFileSize(&textFile);
-
-    int remainder = textFileSize % 16;
-    uint8_t padValue = 0x10 - remainder;
-
-    PlainTextWithPaddingSize = textFileSize + (16 - remainder);
-
-    Byte *text;
-    text = (Byte *) malloc (sizeof(Byte) * PlainTextWithPaddingSize);
-
-    char *tmpBuf;
-    tmpBuf = (char *) malloc (sizeof(char) * textFileSize);
-
-    textFile.read(tmpBuf, textFileSize);
-
-    for (int i = 0; i < textFileSize; i++)
-    {
-        text[i] = Byte((uint8_t) tmpBuf[i]);
-    }
-
-    for (int i = 0; i < (16 - remainder); i++)
-    {
-        text[textFileSize + i] = Byte(padValue);
-    }
-
-    free(tmpBuf);
-    textFile.close();
-
-    return text;
-}
-
-Byte* GetCipherText(char *cipherTextFilename)
-{
-    ifstream cipherTextFile(cipherTextFilename, ifstream::in | ifstream::binary);
-
-    CipherTextSize = GetFileSize(&cipherTextFile);
-
-    if (CipherTextSize % 16 != 0)
-    {
-        printf("Cipher text is corrupt (should be an even block length).\n"
-               "Cipher text size = %i\n", CipherTextSize);
-        exit(1);
-    }
-
-    Byte *cipherText;
-    cipherText = (Byte *) malloc (sizeof(Byte) * CipherTextSize);
-
-    char *tmpBuf;
-    tmpBuf = (char *) malloc (sizeof(char) * CipherTextSize);
-
-    cipherTextFile.read(tmpBuf, CipherTextSize);
-
-    for (int i = 0; i < CipherTextSize; i++)
-    {
-        cipherText[i] = Byte((uint8_t) tmpBuf[i]);
-    }
-
-    free(tmpBuf);
-    cipherTextFile.close();
-
-    return cipherText;
-}
-
-int GetFileSize(ifstream *file)
-{
-    int fileSize;
-
-    file->seekg(0, file->end);
-    fileSize = file->tellg();
-    file->seekg(file->beg);
-
-    if (fileSize <= 0)
-    {
-        "Error determining file size, or file is empty.\n";
-        exit(1);
-    }
-
-    return fileSize;
-}
-
 void CBCEncrypt(Byte *key, Byte *textBlocks, char *filename) {
+    // Generate IV
     Byte IV[16];
     GenerateRandom(IV, 16);
 
     Byte *cipherBuffer;
     cipherBuffer = (Byte *) malloc (sizeof(Byte) * (PlainTextWithPaddingSize + 16));
 
+    // Copy IV into first block of cipher text
     CopyBlock(cipherBuffer, 0, IV, 0);
 
-    //Nk = KeySize/4
+    // Convert key to a ByteArray form (2D array)
     ByteArray keyByteArray = ByteArray(1, KeySize);
     for (int k = 0; k < KeySize; k++)
     {
         keyByteArray.byteArray[0][k] = key[k];
     }
 
-    int numWords = 4*(KeySize/4 + 7); //Nb(Nr+1); Nr = KeySize/4 + 6
+    // numWords = Nb(Nr+1)
+    // Nr = KeySize/4 + 6
+    int numWords = 4*(KeySize/4 + 7);
     ByteArray keyExpanded = ByteArray(4, numWords);
 
     keyExpansion(keyByteArray, keyExpanded, KeySize/4, numWords);
 
+    // For each block of plain text
     for (int i = 0; i < PlainTextWithPaddingSize/16; i++)
     {
         Byte tmpCurrentBlock[16];
         CopyBlock(tmpCurrentBlock, 0, textBlocks, 16*i);
 
+        // XOR plain text block with IV
         for (int k = 0; k < 16; k++)
             tmpCurrentBlock[k] = tmpCurrentBlock[k] + IV[k];
 
+        // Convert current plain text block to state
         ByteArray stateArray = ByteArray(4, 4);
         for (int j = 0; j < 4; j++)
         {
@@ -574,9 +287,11 @@ void CBCEncrypt(Byte *key, Byte *textBlocks, char *filename) {
             }
         }
 
+        // Get cipher text block as ByteArray
         ByteArray *cipherBlock;
         cipherBlock = Cipher(&stateArray, &keyExpanded);
 
+        // Convert to a linear block for copying
         Byte linearCipherBlock[16];
         for (int j = 0; j < 4; j++)
         {
@@ -588,6 +303,7 @@ void CBCEncrypt(Byte *key, Byte *textBlocks, char *filename) {
 
         CopyBlock(cipherBuffer, 16*(i+1), linearCipherBlock, 0);
 
+        // Copy the current cipher text to be used as IV for next round of encryption
         CopyBlock(IV, 0, linearCipherBlock, 0);
     }
 
@@ -605,29 +321,34 @@ void CBCEncrypt(Byte *key, Byte *textBlocks, char *filename) {
 
 void CBCDecrypt(Byte *key, Byte *cipherTextBlocks, char *cipherTextFilename)
 {
+    // Get IV which is in first block of cipher text
     Byte IV[16];
     CopyBlock(IV, 0, cipherTextBlocks, 0);
 
     Byte *textBuffer;
     textBuffer = (Byte *) malloc (sizeof(Byte)*(CipherTextSize - 16));
 
-    //Nk = KeySize/4
+    // Convert key to a ByteArray form (2D array)
     ByteArray keyByteArray = ByteArray(1, KeySize);
     for (int k = 0; k < KeySize; k++)
     {
         keyByteArray.byteArray[0][k] = key[k];
     }
 
-    int numWords = 4*(KeySize/4 + 7); //Nb(Nr+1); Nr = KeySize/4 + 6
+    // numWords = Nb(Nr+1)
+    // Nr = KeySize/4 + 6
+    int numWords = 4*(KeySize/4 + 7);
     ByteArray keyExpanded = ByteArray(4, numWords);
 
     keyExpansion(keyByteArray, keyExpanded, KeySize/4, numWords);
 
+    // For each block of cipher text, excluding the first block which was IV
     for (int i = 1; i < CipherTextSize/16; i++)
     {
         Byte tmpCurrentBlock[16];
         CopyBlock(tmpCurrentBlock, 0, cipherTextBlocks, 16*i);
 
+        // Convert block to state array
         ByteArray stateArray = ByteArray(4, 4);
         for (int j = 0; j < 4; j++)
         {
@@ -637,9 +358,11 @@ void CBCDecrypt(Byte *key, Byte *cipherTextBlocks, char *cipherTextFilename)
             }
         }
 
+        // Decrypt block
         ByteArray *textBlock;
         textBlock = InvCipher(&stateArray, &keyExpanded);
 
+        // Convert to linear array for XORing and copying
         Byte linearTextBlock[16];
         for (int j = 0; j < 4; j++)
         {
@@ -649,14 +372,17 @@ void CBCDecrypt(Byte *key, Byte *cipherTextBlocks, char *cipherTextFilename)
             }
         }
 
+        // XOR with IV
         for (int k = 0; k < 16; k++)
             linearTextBlock[k] = linearTextBlock[k] + IV[k];
 
         CopyBlock(textBuffer, 16*(i-1), linearTextBlock, 0);
 
+        // Copy the current cipher text block into the IV for the next round of decryption
         CopyBlock(IV, 0, tmpCurrentBlock, 0);
     }
 
+    // Validate padding
     ValidatePadding(textBuffer, CipherTextSize - 16);
 
     strcat(cipherTextFilename, ".dec");
@@ -670,50 +396,6 @@ void CBCDecrypt(Byte *key, Byte *cipherTextBlocks, char *cipherTextFilename)
     ofile.close();
     free(textBuffer);
 }
-
-void CopyBlock(Byte *dest, int destStartIndex, Byte *src, int srcStartIndex)
-{
-    for (int i = 0; i < 16; i++)
-    {
-        dest[destStartIndex + i] = src[srcStartIndex + i];
-    }
-}
-
-void ValidatePadding(Byte *text, int size)
-{
-    Byte lastByteOfText = text[size - 1];
-    for (uint8_t i = 0; i < lastByteOfText.byte; i++)
-    {
-        if (text[(size - 1) - i].byte != lastByteOfText.byte)
-        {
-            printf("cipher text corrupt - padding is invalid.\n");
-            exit(1);
-        }
-
-        text[(size - 1) - i] = Byte(0x00);
-    }
-}
-
-void GenerateRandom(Byte *dest, int sizeInBytes)
-{
-    ifstream ifs ("/dev/urandom", ifstream::binary);
-    if (ifs)
-    {
-        char *tmpBuf;
-        tmpBuf = (char *) malloc (sizeof(char) * sizeInBytes);
-
-        ifs.read(tmpBuf, sizeInBytes);
-
-        for (int i = 0; i < sizeInBytes; i++)
-        {
-            dest[i] = ((uint8_t) tmpBuf[i]);
-        }
-
-        free(tmpBuf);
-        ifs.close();
-    }
-}
-
 
 ByteArray* Cipher(ByteArray *state, ByteArray *keys)
 {
@@ -756,4 +438,3 @@ ByteArray* InvCipher(ByteArray *state, ByteArray *keys)
 
     return state;
 }
-

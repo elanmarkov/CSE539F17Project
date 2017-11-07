@@ -1,3 +1,6 @@
+#ifndef _LIB_AES_H_
+#define _LIB_AES_H_
+
 // AES Math Library by Elan Markov
 // CSE 539 Final Project
 #include <stdint.h>
@@ -37,3 +40,5 @@ struct Word {
         Word(uint8_t byte1, uint8_t byte2, uint8_t byte3, uint8_t byte4);
         Word operator^(Word rhs);
 };
+
+#endif
