@@ -106,6 +106,7 @@ int main(int argc, char* argv[]) {
 
                 if (plainTextSize == 0)
                 {
+		// should be an exception to handle here
                     printf("Text file is empty - nothing to encrypt.\n");
                 }
 

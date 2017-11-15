@@ -46,6 +46,7 @@ Byte* GetTextFromFile(char *filename, int fileSize)
     return fileText;
 }
 
+// Adds padding to valid plaintext
 Byte* GetPlainTextWithPadding(char *textFilename, int fileSize, int padSize)
 {
     ifstream textFile(textFilename, ifstream::in | ifstream::binary);
@@ -76,6 +77,7 @@ Byte* GetPlainTextWithPadding(char *textFilename, int fileSize, int padSize)
     return text;
 }
 
+//copies part of a block to another block by index
 void CopyBlock(Byte *dest, int destStartIndex, Byte *src, int srcStartIndex)
 {
     for (int i = 0; i < 16; i++)
@@ -84,6 +86,7 @@ void CopyBlock(Byte *dest, int destStartIndex, Byte *src, int srcStartIndex)
     }
 }
 
+// After decrypting, check that the padding is valid according to padding scheme
 void ValidatePadding(Byte *text, int size)
 {
     Byte lastByteOfText = text[size - 1];
