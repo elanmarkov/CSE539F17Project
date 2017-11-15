@@ -9,7 +9,7 @@ Byte* GetPlainTextWithPadding(char *textFilename, int fileSize, int padSize);
 Byte* GetTextFromFile(char *filename, int fileSize);
 
 void CopyBlock(Byte *dest, int destStartIndex, Byte *src, int srcStartIndex);
-void ValidatePadding(Byte *text, int size);
+int ValidatePadding(Byte *text, int size);
 void GenerateRandom(Byte *dest, int sizeInBytes);
 
 #endif
