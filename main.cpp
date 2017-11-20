@@ -92,6 +92,7 @@ int main(int argc, char* argv[]) {
                 }
 
                 Byte *key = GetTextFromFile(keyFilename, KeySize); // Static memory allocation; deallocation must be handled
+                Byte *textBlocks = 0; // initialize here so we have it initialized for deletion
                 try
                 {
                     // This function gets the plain text to be encrypted and pads it
@@ -108,7 +109,7 @@ int main(int argc, char* argv[]) {
                     int padSize = 16 - (plainTextSize % 16);
                     PlainTextWithPaddingSize = plainTextSize + padSize;
 
-                    Byte *textBlocks = GetPlainTextWithPadding(plaintextFilename, plainTextSize, padSize);
+                    textBlocks = GetPlainTextWithPadding(plaintextFilename, plainTextSize, padSize);
 
                     CBCEncrypt(key, textBlocks, plaintextFilename);
                 }
@@ -116,6 +117,8 @@ int main(int argc, char* argv[]) {
                     cerr << "An error occurred during encryption.\n"; // Memory will be freed below 
                 }
                 free(key); // Ensure memory is freed
+                if(textBlocks != 0) 
+                    free(textBlocks);
             }
             else
             {
