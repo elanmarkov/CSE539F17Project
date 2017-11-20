@@ -183,7 +183,8 @@ int main(int argc, char* argv[]) {
                     cerr << "Error in decryption\n";
                 }
                 free(key); // deallocate all static allocations
-                free(cipherTextBlocks);
+                if(cipherTextBlocks != 0) 
+                    free(cipherTextBlocks);
             }
             else
             {
@@ -412,13 +413,14 @@ void CBCDecrypt(Byte *key, Byte *cipherTextBlocks, char *cipherTextFilename)
             CopyBlock(IV, 0, tmpCurrentBlock, 0);
         }
 
+	strcat(cipherTextFilename, ".dec"); 
+        ofile.open(cipherTextFilename, ofstream::out | ofstream::binary);
         // Validate padding
         int padBytes = ValidatePadding(textBuffer, CipherTextSize - 16);
+
         if(padBytes != -1) // if the pad is wrong, don't print output
         {
-            strcat(cipherTextFilename, ".dec");
 
-            ofile.open(cipherTextFilename, ofstream::out | ofstream::binary);
             for (int i = 0; i < CipherTextSize - 16 - padBytes; i++)
             {
                 ofile << textBuffer[i].byte;
