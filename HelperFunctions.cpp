@@ -16,6 +16,7 @@ int GetFileSize(char *filename)
     if (size < 0)
     {
         return -1;
+        inFile.close();
     }
 
     inFile.close();
