@@ -15,11 +15,11 @@ int GetFileSize(char *filename)
 
     if (size < 0)
     {
+        inFile.close(); // For secure coding, close infile if in error
         return -1;
-        inFile.close();
     }
 
-    inFile.close();
+    inFile.close(); // For secure coding, close infile upon end of use
 
     return size;
 }
@@ -29,13 +29,13 @@ Byte* GetTextFromFile(char *filename, int fileSize)
     // File opened and static allocations
     ifstream file(filename, ifstream::in | ifstream::binary);
 
-    Byte *fileText = 0;
+    Byte *fileText = 0; // Initialize pointers to 0 for secure coding
     fileText = (Byte *) malloc (sizeof(Byte) * fileSize);
 
-    char *tmpBuf = 0;
+    char *tmpBuf = 0; // Initialize pointers to 0 for secure coding
     tmpBuf = (char *) malloc (sizeof(char) * fileSize);
 
-    try 
+    try // Contain static allocated usage in try/catch block for secure coding
     {
         file.read(tmpBuf, fileSize);
 
@@ -48,7 +48,7 @@ Byte* GetTextFromFile(char *filename, int fileSize)
     {
         printf("Error getting text from file.\n");
     }
-    free(tmpBuf);
+    free(tmpBuf); // for secure coding, deallocate all memory and close files upon end of use
     file.close();
 
     return fileText; // Caller will handle any errors here
@@ -63,13 +63,13 @@ Byte* GetPlainTextWithPadding(char *textFilename, int fileSize, int padSize)
 
     uint8_t padValue = 0x10 - (fileSize % 16);
 
-    Byte *text = 0;
+    Byte *text = 0; // Initialize pointers to 0 for secure coding
     text = (Byte *) malloc (sizeof(Byte) * (fileSize + padSize));
 
-    char *tmpBuf = 0;
+    char *tmpBuf = 0; // Initialize pointers to 0 for secure coding
     tmpBuf = (char *) malloc (sizeof(char) * fileSize);
 
-    try
+    try // Contain static allocated usage in try/catch block for secure coding
     {
         textFile.read(tmpBuf, fileSize);
 
@@ -122,10 +122,10 @@ int ValidatePadding(Byte *text, int size)
 
 void GenerateRandom(Byte *dest, int sizeInBytes)
 {
-    ifstream ifs ("/dev/urandom", ifstream::binary);
+    ifstream ifs ("/dev/urandom", ifstream::binary); // use cryptographically secure PRG for secure coding
     if (ifs)
     {
-        char *tmpBuf = 0;
+        char *tmpBuf = 0; // Initialize pointers to 0 for secure coding
         tmpBuf = (char *) malloc (sizeof(char) * sizeInBytes);
 
         try
@@ -140,7 +140,7 @@ void GenerateRandom(Byte *dest, int sizeInBytes)
         catch(...) {
              printf("Error in generating a random number.\n");
         }
-        free(tmpBuf);
-        ifs.close();
+        free(tmpBuf); // for secure coding, deallocate all memory and close files upon end of use
+        ifs.close(); 
     }
 }

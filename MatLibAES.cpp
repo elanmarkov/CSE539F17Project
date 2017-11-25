@@ -18,7 +18,8 @@ ByteArray::ByteArray() {
     ByteArray(def, def);
 }
 ByteArray::~ByteArray() {
-// Destructor, 2D array cleanup
+// Destructor, 2D array cleanup, 
+// paired function with constructor for secure coding deletion
     for(int i = 0; i < row; ++i) {
         delete [] byteArray[i];
     }

@@ -92,8 +92,8 @@ int main(int argc, char* argv[]) {
                 }
 
                 Byte *key = GetTextFromFile(keyFilename, KeySize); // Static memory allocation; deallocation must be handled
-                Byte *textBlocks = 0; // initialize here so we have it initialized for deletion
-                try
+                Byte *textBlocks = 0; // for secure coding, initialize to null
+                try // for secure coding, handle exceptions and ensure memory is deleted in all cases
                 {
                     // This function gets the plain text to be encrypted and pads it
                     int plainTextSize = GetFileSize(plaintextFilename);
@@ -116,7 +116,7 @@ int main(int argc, char* argv[]) {
                 catch(...) {
                     cerr << "An error occurred during encryption.\n"; // Memory will be freed below 
                 }
-                free(key); // Ensure memory is freed
+                free(key); // Ensure memory is freed for secure coding
                 if(textBlocks != 0) 
                     free(textBlocks);
             }
@@ -182,7 +182,7 @@ int main(int argc, char* argv[]) {
                 catch(...) {
                     cerr << "Error in decryption\n";
                 }
-                free(key); // deallocate all static allocations
+                free(key); // for secure coding, deallocate all memory and close files upon end of use
                 if(cipherTextBlocks != 0) 
                     free(cipherTextBlocks);
             }
@@ -239,11 +239,11 @@ int main(int argc, char* argv[]) {
         }
         
         // key is statically allocated; outfile is opened. Must deallocate and close before exiting.
-        Byte *key = 0; // set to null
+        Byte *key = 0; // set to null for secure coding
         key = (Byte *) malloc (sizeof(Byte) * keyLengthBytes);
         ofstream outfile(filename, ofstream::out | ofstream::binary);
         
-        try 
+        try  // for secure coding, handle exceptions
         {
             GenerateRandom(key, keyLengthBytes);
 
@@ -254,7 +254,7 @@ int main(int argc, char* argv[]) {
         catch(...) {
             cerr << "An error occurred during key generation / writing.\n";
         }
-        free(key);
+        free(key); // for secure coding, deallocate all memory and close files upon end of use
         outfile.close();
     }
     else
@@ -271,10 +271,10 @@ void CBCEncrypt(Byte *key, Byte *textBlocks, char *filename) {
     Byte IV[16];
     GenerateRandom(IV, 16);
 
-    Byte *cipherBuffer = 0; // default null pointer, static allocation; must be exception-handled
+    Byte *cipherBuffer = 0; // default null pointer (for secure coding), static allocation; must be exception-handled
     cipherBuffer = (Byte *) malloc (sizeof(Byte) * (PlainTextWithPaddingSize + 16));
     ofstream ofile; // handle outfile here as well; will be opened later
-    try{
+    try{ // try/catch on static allocation memory for secure coding
         // Copy IV into first block of cipher text
         CopyBlock(cipherBuffer, 0, IV, 0);
 
@@ -343,7 +343,7 @@ void CBCEncrypt(Byte *key, Byte *textBlocks, char *filename) {
     catch(...) {
         cerr << "CBCEncrypt failed!\n";
     }
-    if(ofile.is_open())
+    if(ofile.is_open()) // for secure coding, deallocate all memory and close files upon end of use
         ofile.close();
     free(cipherBuffer);
 }
@@ -354,10 +354,10 @@ void CBCDecrypt(Byte *key, Byte *cipherTextBlocks, char *cipherTextFilename)
     Byte IV[16];
     CopyBlock(IV, 0, cipherTextBlocks, 0);
 
-    Byte *textBuffer = 0; // default null pointer, static allocation; must be exception-handled
+    Byte *textBuffer = 0; // default null pointer (for secure coding) , static allocation; must be exception-handled
     textBuffer = (Byte *) malloc (sizeof(Byte)*(CipherTextSize - 16));
     ofstream ofile; // handle outfile here as well; will be opened later
-    try
+    try // handle memory-using exceptions for secure coding
     {
         // Convert key to a ByteArray form (2D array)
         ByteArray keyByteArray = ByteArray(1, KeySize);
@@ -430,7 +430,7 @@ void CBCDecrypt(Byte *key, Byte *cipherTextBlocks, char *cipherTextFilename)
     catch(...) {
         cerr << "CBCDecrypt failed!\n";
     }
-    if(ofile.is_open())
+    if(ofile.is_open()) // for secure coding, deallocate all memory and close files upon end of use
         ofile.close();
     free(textBuffer);
 }
