@@ -122,7 +122,7 @@ int ValidatePadding(Byte *text, int size)
 
 void GenerateRandom(Byte *dest, int sizeInBytes)
 {
-    ifstream ifs ("/dev/urandom", ifstream::binary); // use cryptographically secure PRG for secure coding
+    ifstream ifs ("/dev/urandom", ifstream::binary); // use cryptographically secure PRG for secure/crypto coding
     if (ifs)
     {
         char *tmpBuf = 0; // Initialize pointers to 0 for secure coding
